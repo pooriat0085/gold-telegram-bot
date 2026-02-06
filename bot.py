@@ -8,7 +8,7 @@ from telegram.ext import (
     filters,
 )
 
-TOKEN = "PUT_YOUR_TOKEN_HERE"
+TOKEN = os.environ.get("8508837678:AAEW52Cy28MoOM1Zw8-ARiZ0yqo8VYjshGE")
 SELLER_PROFIT = 0.07
 
 
