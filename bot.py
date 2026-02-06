@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 # 🔹 توکن ربات از Environment Variable
-TOKEN = os.environ.get("8508837678:AAFvzujecl9kN5h-B-FFeczoslITaLlyU5g")
+TOKEN = os.environ.get("8284658183:AAHE1hWg-Mxa1npOFu96bwdlbQcFs0oE8f8")
 SELLER_PROFIT = 0.07  # سود مغازه‌دار ثابت 7٪
 
 # تابع گرفتن قیمت طلای 18 عیار
