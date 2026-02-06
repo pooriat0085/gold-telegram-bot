@@ -1,4 +1,3 @@
-import os
 import requests
 from telegram import Update
 from telegram.ext import (
@@ -9,8 +8,8 @@ from telegram.ext import (
     filters,
 )
 
-# 🔹 توکن ربات از Environment Variable
-TOKEN = os.environ.get("8284658183:AAHE1hWg-Mxa1npOFu96bwdlbQcFs0oE8f8")
+# 🔹 توکن ربات (مستقیم داخل کد)
+TOKEN = "8284658183:AAHE1hWg-Mxa1npOFu96bwdlbQcFs0oE8f8"
 SELLER_PROFIT = 0.07  # سود مغازه‌دار ثابت 7٪
 
 # تابع گرفتن قیمت طلای 18 عیار
