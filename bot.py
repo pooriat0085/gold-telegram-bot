@@ -6,7 +6,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 WEIGHT, FEE = range(2)
 
 # توکن مستقیم
-TOKEN = "توکن_ربات_تلگرام_تو"  # <-- اینجا توکن خودت رو بذار
+TOKEN = "8284658183:AAFgcMKcyVVUT0MwTsCrxqj6yF_pt8c8Yb8"  # <-- اینجا توکن خودت رو بذار
 
 def fetch_gold_price():
     try:
