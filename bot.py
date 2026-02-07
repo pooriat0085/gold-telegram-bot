@@ -1,88 +1,69 @@
-import os
 import requests
+from bs4 import BeautifulSoup
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters,
-)
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ConversationHandler, ContextTypes
 
-# 🔹 توکن ربات از Environment Variable
-TOKEN = os.environ.get("TOKEN")
-SELLER_PROFIT = 0.07  # سود مغازه‌دار ثابت 7٪
+WEIGHT, FEE = range(2)
 
-# تابع گرفتن قیمت طلای 18 عیار
-def get_gold_price():
-    url = "https://api.tgju.org/v1/data/price"
+# توکن مستقیم
+TOKEN = "توکن_ربات_تلگرام_تو"  # <-- اینجا توکن خودت رو بذار
+
+def fetch_gold_price():
     try:
-        data = requests.get(url, timeout=10).json()
-        return int(data["data"]["geram18"]["p"])
+        res = requests.get("https://goldpricez.com/ir/18k/gram")
+        soup = BeautifulSoup(res.text, "html.parser")
+        text = soup.find("div", {"class": "live-price"}).text
+        price = int(text.replace(",", "").strip())
+        return price
     except:
-        # fallback اگر API مشکل داشت
-        return 11470000
+        return None
 
-# /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
-    await update.message.reply_text(
-        "👋 خوش آمدید به ربات محاسبه قیمت طلا!\n\n"
-        "لطفاً وزن طلا (گرم) را وارد کنید:"
-    )
+    await update.message.reply_text("سلام! وزن طلای مورد نظرت رو به گرم بنویس:")
+    return WEIGHT
 
-# دریافت پیام کاربر
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.strip()
+async def get_weight(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        context.user_data["weight"] = float(update.message.text)
+        await update.message.reply_text("حالا درصد اجرت رو بگو:")
+        return FEE
+    except:
+        await update.message.reply_text("لطفا عدد معتبر وارد کن!")
+        return WEIGHT
 
-    # مرحله 1: وزن
-    if "weight" not in context.user_data:
-        try:
-            context.user_data["weight"] = float(text)
-            await update.message.reply_text(
-                "درصد اجرت ساخت را وارد کنید (مثال: 18):"
-            )
-        except:
-            await update.message.reply_text("❌ لطفاً وزن را به عدد وارد کنید")
-        return
+async def calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        fee = float(update.message.text)
+        weight = context.user_data["weight"]
+        price_per_gram = fetch_gold_price()
+        if price_per_gram is None:
+            await update.message.reply_text("مشکل در دریافت قیمت طلا 😕 لطفا بعداً امتحان کن.")
+            return ConversationHandler.END
 
-    # مرحله 2: اجرت + محاسبه
-    if "wage" not in context.user_data:
-        try:
-            wage_percent = float(text)
-            context.user_data["wage"] = wage_percent
+        base = price_per_gram * weight
+        with_fee = base * (1 + fee / 100)
+        final_price = with_fee * 1.07
+        await update.message.reply_text(f"💰 قیمت نهایی: {final_price:,.0f} ریال")
+        return ConversationHandler.END
+    except:
+        await update.message.reply_text("عدد معتبر وارد کن لطفاً!")
+        return FEE
 
-            weight = context.user_data["weight"]
-            gold_price = get_gold_price()
-
-            base_price = weight * gold_price
-            wage_price = base_price * (wage_percent / 100)
-            subtotal = base_price + wage_price
-            profit = subtotal * SELLER_PROFIT
-            final_price = subtotal + profit
-
-            await update.message.reply_text(
-                f"💰 محاسبه قیمت طلا\n\n"
-                f"🔹 وزن: {weight} گرم\n"
-                f"🔹 قیمت روز ۱۸ عیار: {gold_price:,} تومان\n\n"
-                f"➕ اجرت ({wage_percent}%): {int(wage_price):,} تومان\n"
-                f"➕ سود فروشنده (7%): {int(profit):,} تومان\n"
-                f"━━━━━━━━━━━━━━\n"
-                f"✅ قیمت نهایی: {int(final_price):,} تومان"
-            )
-
-            context.user_data.clear()
-        except:
-            await update.message.reply_text("❌ لطفاً درصد اجرت را عددی وارد کنید")
-
-# تابع main
-def main():
-    app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    print("Bot is running...")
-    app.run_polling()
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("لغو شد.")
+    return ConversationHandler.END
 
 if __name__ == "__main__":
-    main()
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    conv = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={
+            WEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_weight)],
+            FEE: [MessageHandler(filters.TEXT & ~filters.COMMAND, calculate)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+
+    app.add_handler(conv)
+    app.run_polling()
